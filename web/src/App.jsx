@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+const base = import.meta.env.BASE_URL
+
 function getUuid() {
   return window.location.hash.slice(1)
 }
@@ -24,7 +26,7 @@ export default function App() {
       return
     }
 
-    fetch(`/shorts/${uuid}.json`)
+    fetch(`${base}shorts/${uuid}.json`)
       .then((res) => {
         if (!res.ok) throw new Error()
         return res.json()
@@ -36,7 +38,7 @@ export default function App() {
   return (
     <div
       className="min-h-screen p-2 sm:p-12"
-      style={{ backgroundImage: 'url(/assets/border.png)', backgroundRepeat: 'repeat' }}
+      style={{ backgroundImage: `url(${base}assets/border.png)`, backgroundRepeat: 'repeat' }}
     >
       <div className="bg-white rounded-3xl w-full max-w-sm mx-auto px-8 py-10 min-h-[calc(100vh-1rem)] sm:min-h-0">
         {error ? (
@@ -49,7 +51,7 @@ export default function App() {
               生成日: {new Date(story.created_at).toLocaleDateString('ja-JP')}
             </p>
             <div className="flex justify-center py-8">
-              <img src="/assets/logo.jpg" alt="logo" className="w-1/4" />
+              <img src={`${base}assets/logo.jpg`} alt="logo" className="w-1/4" />
             </div>
           </>
         ) : null}
