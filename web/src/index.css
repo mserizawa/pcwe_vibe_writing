@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+mark {
+  background-color: #fdf0e0;
+  color: #92400e;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-style: normal;
+}
