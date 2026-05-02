@@ -1,0 +1,14 @@
+# Python
+.vw/
+script/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+._*
+
+# 生成画像の出力先
+output.png
+script/output.png
