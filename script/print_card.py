@@ -4,12 +4,14 @@ print_card.py - ショートショートJSONからサムネイル画像を生成
 使用例:
     python print_card.py ../shorts/a1b2c3d4-e5f6-7890-abcd-ef1234567890.json
     python print_card.py a1b2c3d4-e5f6-7890-abcd-ef1234567890          # UUID だけでも可
+    python print_card.py ../shorts --latest                              # 最新 JSON を使用
     python print_card.py ../shorts/uuid.json --output card.png
 """
 
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import qrcode
@@ -73,6 +75,19 @@ def truncate_story(story: str, max_chars: int = STORY_MAX_CHARS) -> str:
     return story[:max_chars].rstrip() + "…"
 
 
+def format_created_at(created_at: str) -> str:
+    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def find_latest_json(directory: Path) -> Path:
+    jsons = list(directory.glob("*.json"))
+    if not jsons:
+        print(f"エラー: JSONファイルが見つかりません: {directory}", file=sys.stderr)
+        sys.exit(1)
+    return max(jsons, key=lambda p: json.loads(p.read_text(encoding="utf-8")).get("created_at", ""))
+
+
 def make_qr(url: str, size: int) -> Image.Image:
     qr = qrcode.QRCode(box_size=4, border=2)
     qr.add_data(url)
@@ -85,6 +100,7 @@ def render_card(
     title: str,
     story: str,
     qr_url: str,
+    created_at_str: str,
     font_path: str | None,
     font_size: int,
     padding: int,
@@ -97,6 +113,7 @@ def render_card(
     title_font = load_font(font_path, int(font_size * 1.35))
     body_font = load_font(font_path, font_size)
     cta_font = load_font(font_path, int(font_size * 0.85))
+    ts_font = load_font(font_path, int(font_size * 0.7))
 
     def line_h(font: ImageFont.FreeTypeFont | ImageFont.ImageFont) -> int:
         dummy = Image.new("RGB", (1, 1))
@@ -105,6 +122,7 @@ def render_card(
     title_lh = line_h(title_font)
     body_lh = line_h(body_font)
     cta_lh = line_h(cta_font)
+    ts_lh = line_h(ts_font)
 
     title_lines = wrap_text(title, title_font, text_area_width)
     body_lines = wrap_text(story, body_font, text_area_width)
@@ -120,7 +138,7 @@ def render_card(
         logo_w = int(width * 0.25)
         logo_h = int(logo_w * raw_logo.height / raw_logo.width)
         logo_img = raw_logo.resize((logo_w, logo_h), Image.LANCZOS)
-        logo_section_h = padding + logo_h + padding
+        logo_section_h = padding + logo_h
 
     content_height = (
         rect_inset + padding
@@ -129,6 +147,7 @@ def render_card(
         + cta_lh * len(cta_lines) + padding // 2
         + qr_size + int(padding * 1.5)
         + logo_section_h
+        + padding // 2 + ts_lh + 6
         + rect_inset
     )
 
@@ -171,13 +190,18 @@ def render_card(
 
     if logo_img:
         canvas.paste(logo_img, ((width - logo_img.width) // 2, y), logo_img)
+        y += logo_h
+
+    y += padding // 2
+    draw.text((width - rect_inset - padding // 2, y), created_at_str, font=ts_font, fill="#111111", anchor="rt")
 
     return canvas
 
 
 def main():
     parser = argparse.ArgumentParser(description="ショートショートJSONからサムネイル画像を生成します")
-    parser.add_argument("short", help="JSONファイルパスまたはUUID")
+    parser.add_argument("short", help="JSONファイルパス、UUID、またはディレクトリ（--latestと併用）")
+    parser.add_argument("--latest", action="store_true", help="ディレクトリ内で created_at が最新の JSON を使用")
     parser.add_argument("--output", default=None, help="出力ファイル名（デフォルト: {uuid}.png）")
     parser.add_argument("--font", default=None, help="フォントファイルパス (.ttf/.ttc)")
     parser.add_argument("--font-size", type=int, default=16)
@@ -187,8 +211,15 @@ def main():
     args = parser.parse_args()
 
     short_path = Path(args.short)
-    if not short_path.suffix:
+
+    if args.latest:
+        if not short_path.is_dir():
+            print(f"エラー: --latest にはディレクトリを指定してください: {short_path}", file=sys.stderr)
+            sys.exit(1)
+        short_path = find_latest_json(short_path)
+    elif not short_path.suffix:
         short_path = SHORTS_DIR / f"{args.short}.json"
+
     if not short_path.exists():
         print(f"エラー: ファイルが見つかりません: {short_path}", file=sys.stderr)
         sys.exit(1)
@@ -200,9 +231,11 @@ def main():
     data = json.loads(short_path.read_text(encoding="utf-8"))
     title = data["title"]
     story = truncate_story(data["story"])
+    created_at_str = format_created_at(data["created_at"])
     qr_url = f"{PAGES_BASE_URL}{uuid}"
 
     print(f"タイトル : {title}")
+    print(f"作成日時 : {created_at_str}")
     print(f"QR URL  : {qr_url}")
     print("生成中...")
 
@@ -210,6 +243,7 @@ def main():
         title=title,
         story=story,
         qr_url=qr_url,
+        created_at_str=created_at_str,
         font_path=args.font,
         font_size=args.font_size,
         padding=args.padding,
