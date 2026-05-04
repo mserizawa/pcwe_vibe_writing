@@ -25,6 +25,7 @@ DEFAULT_WIDTH = 424
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BORDER_PATH = ASSETS_DIR / "border.png"
 VW_LOGO_PATH = ASSETS_DIR / "vw_logo.png"
+VW_LOGO_BLACK_PATH = ASSETS_DIR / "vw_logo_black.png"
 
 COPYRIGHT = "© 2026 読んでみてはラジオ"
 SHORTS_DIR = Path(__file__).parent.parent / "shorts"
@@ -122,6 +123,7 @@ def render_card(
     padding: int,
     width: int,
     line_spacing: int,
+    no_background: bool = False,
 ) -> Image.Image:
     rect_inset = 16
     text_area_width = width - rect_inset * 2 - padding * 2
@@ -150,8 +152,9 @@ def render_card(
     # カード上部ロゴ（背景の上）
     vw_logo_img = None
     vw_logo_h = 0
-    if VW_LOGO_PATH.exists():
-        raw_vw = Image.open(VW_LOGO_PATH).convert("RGBA")
+    logo_src = VW_LOGO_BLACK_PATH if no_background else VW_LOGO_PATH
+    if logo_src.exists():
+        raw_vw = Image.open(logo_src).convert("RGBA")
         vw_logo_w = int(width * 0.65)
         vw_logo_h = int(vw_logo_w * raw_vw.height / raw_vw.width)
         vw_logo_img = raw_vw.resize((vw_logo_w, vw_logo_h), Image.LANCZOS)
@@ -172,29 +175,35 @@ def render_card(
 
     copyright_font = load_bold_font(int(font_size * 0.9))
     copyright_pad = padding // 2
-    copyright_lh = line_h(copyright_font)
+    copyright_lh = line_h(ts_font if no_background else copyright_font)
 
-    tile = Image.open(BORDER_PATH).convert("RGB")
-    tile_h = int(width * tile.height / tile.width)
-    tile = tile.resize((width, tile_h), Image.LANCZOS)
+    if no_background:
+        card_canvas_h = card_top + card_content_h
+    else:
+        tile = Image.open(BORDER_PATH).convert("RGB")
+        tile_h = int(width * tile.height / tile.width)
+        tile = tile.resize((width, tile_h), Image.LANCZOS)
+        card_canvas_h = max(tile_h, card_top + card_content_h)
 
-    card_canvas_h = max(tile_h, card_top + card_content_h)
     canvas_height = card_canvas_h + copyright_pad + copyright_lh + copyright_pad
     canvas = Image.new("RGB", (width, canvas_height), "white")
-    for y_tile in range(0, canvas_height, tile_h):
-        canvas.paste(tile, (0, y_tile))
 
-    # カード上部ロゴを背景に合成
+    if not no_background:
+        for y_tile in range(0, canvas_height, tile_h):
+            canvas.paste(tile, (0, y_tile))
+
+    # カード上部ロゴを合成
     if vw_logo_img:
         vw_x = (width - vw_logo_img.width) // 2
         canvas.paste(vw_logo_img, (vw_x, vw_logo_top), vw_logo_img)
 
     draw = ImageDraw.Draw(canvas)
-    draw.rounded_rectangle(
-        (rect_inset, card_top, width - rect_inset, card_canvas_h - rect_inset),
-        radius=20,
-        fill="white",
-    )
+    if not no_background:
+        draw.rounded_rectangle(
+            (rect_inset, card_top, width - rect_inset, card_canvas_h - rect_inset),
+            radius=20,
+            fill="white",
+        )
 
     x = rect_inset + padding
     y = card_top + padding
@@ -222,7 +231,9 @@ def render_card(
 
     # カード外・背景上のコピーライト
     copyright_y = card_canvas_h - rect_inset + copyright_pad
-    draw.text((width // 2, copyright_y), COPYRIGHT, font=copyright_font, fill="white", anchor="mt")
+    copyright_color = "#111111" if no_background else "white"
+    copyright_draw_font = ts_font if no_background else copyright_font
+    draw.text((width // 2, copyright_y), COPYRIGHT, font=copyright_draw_font, fill=copyright_color, anchor="mt")
 
     return canvas
 
@@ -231,6 +242,7 @@ def main():
     parser = argparse.ArgumentParser(description="ショートショートJSONからサムネイル画像を生成します")
     parser.add_argument("short", help="JSONファイルパス、UUID、またはディレクトリ（--latestと併用）")
     parser.add_argument("--latest", action="store_true", help="ディレクトリ内で created_at が最新の JSON を使用")
+    parser.add_argument("--no-background", action="store_true", help="背景なし版（白背景・黒ロゴ・黒コピーライト）")
     parser.add_argument("--output", default=None, help="出力ファイル名（デフォルト: {uuid}.png）")
     parser.add_argument("--font", default=None, help="フォントファイルパス (.ttf/.ttc)")
     parser.add_argument("--font-size", type=int, default=16)
@@ -278,6 +290,7 @@ def main():
         padding=args.padding,
         width=args.width,
         line_spacing=args.line_spacing,
+        no_background=args.no_background,
     )
     card.save(output_path)
     print(f"保存完了 : {output_path}")
