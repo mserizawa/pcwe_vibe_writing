@@ -11,7 +11,9 @@ print_card.py - ショートショートJSONからサムネイル画像を生成
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+JST = timezone(timedelta(hours=9))
 from pathlib import Path
 
 import qrcode
@@ -90,7 +92,7 @@ def truncate_story(story: str, max_chars: int = STORY_MAX_CHARS) -> str:
 
 
 def format_created_at(created_at: str) -> str:
-    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00")).astimezone(JST)
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
