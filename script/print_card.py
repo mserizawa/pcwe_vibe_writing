@@ -23,6 +23,7 @@ DEFAULT_WIDTH = 424
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BORDER_PATH = ASSETS_DIR / "border.png"
 LOGO_PATH = ASSETS_DIR / "logo.jpg"
+VW_LOGO_PATH = ASSETS_DIR / "vw_logo.png"
 SHORTS_DIR = Path(__file__).parent.parent / "shorts"
 DIST_DIR = Path(__file__).parent / "dist"
 
@@ -131,6 +132,7 @@ def render_card(
     qr_size = int(width * 0.5 * 2 / 3)
     qr_img = make_qr(qr_url, qr_size)
 
+    # カード内部ロゴ（下部）
     logo_img = None
     logo_section_h = 0
     if LOGO_PATH.exists():
@@ -140,8 +142,21 @@ def render_card(
         logo_img = raw_logo.resize((logo_w, logo_h), Image.LANCZOS)
         logo_section_h = padding + logo_h
 
-    content_height = (
-        rect_inset + padding
+    # カード上部ロゴ（背景の上）
+    vw_logo_img = None
+    vw_logo_h = 0
+    if VW_LOGO_PATH.exists():
+        raw_vw = Image.open(VW_LOGO_PATH).convert("RGBA")
+        vw_logo_w = int(width * 0.65)
+        vw_logo_h = int(vw_logo_w * raw_vw.height / raw_vw.width)
+        vw_logo_img = raw_vw.resize((vw_logo_w, vw_logo_h), Image.LANCZOS)
+
+    vw_logo_top = rect_inset
+    vw_logo_gap = padding // 2
+    card_top = vw_logo_top + vw_logo_h + vw_logo_gap
+
+    card_content_h = (
+        padding
         + title_lh * len(title_lines) + padding
         + body_lh * len(body_lines) + body_lh * 2
         + cta_lh * len(cta_lines) + padding // 2
@@ -155,20 +170,25 @@ def render_card(
     tile_h = int(width * tile.height / tile.width)
     tile = tile.resize((width, tile_h), Image.LANCZOS)
 
-    canvas_height = max(tile_h, content_height)
+    canvas_height = max(tile_h, card_top + card_content_h)
     canvas = Image.new("RGB", (width, canvas_height), "white")
     for y_tile in range(0, canvas_height, tile_h):
         canvas.paste(tile, (0, y_tile))
 
+    # カード上部ロゴを背景に合成
+    if vw_logo_img:
+        vw_x = (width - vw_logo_img.width) // 2
+        canvas.paste(vw_logo_img, (vw_x, vw_logo_top), vw_logo_img)
+
     draw = ImageDraw.Draw(canvas)
     draw.rounded_rectangle(
-        (rect_inset, rect_inset, width - rect_inset, canvas_height - rect_inset),
+        (rect_inset, card_top, width - rect_inset, canvas_height - rect_inset),
         radius=20,
         fill="white",
     )
 
     x = rect_inset + padding
-    y = rect_inset + padding
+    y = card_top + padding
 
     for line in title_lines:
         draw.text((x, y), line, font=title_font, fill="#111111")
