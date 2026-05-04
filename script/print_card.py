@@ -22,8 +22,9 @@ DEFAULT_WIDTH = 424
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BORDER_PATH = ASSETS_DIR / "border.png"
-LOGO_PATH = ASSETS_DIR / "logo.jpg"
 VW_LOGO_PATH = ASSETS_DIR / "vw_logo.png"
+
+COPYRIGHT = "© 2026 読んでみてはラジオ"
 SHORTS_DIR = Path(__file__).parent.parent / "shorts"
 DIST_DIR = Path(__file__).parent / "dist"
 
@@ -38,11 +39,23 @@ CANDIDATE_FONTS = [
     "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
 ]
 
+CANDIDATE_BOLD_FONTS = [
+    "/System/Library/Fonts/ヒラギノ角ゴシック W7.ttc",
+    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+]
+
 
 def load_font(font_path: str | None, size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     if font_path:
         return ImageFont.truetype(font_path, size)
     for path in CANDIDATE_FONTS:
+        if Path(path).exists():
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
+
+
+def load_bold_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for path in CANDIDATE_BOLD_FONTS:
         if Path(path).exists():
             return ImageFont.truetype(path, size)
     return ImageFont.load_default()
@@ -132,16 +145,6 @@ def render_card(
     qr_size = int(width * 0.5 * 2 / 3)
     qr_img = make_qr(qr_url, qr_size)
 
-    # カード内部ロゴ（下部）
-    logo_img = None
-    logo_section_h = 0
-    if LOGO_PATH.exists():
-        raw_logo = Image.open(LOGO_PATH).convert("RGBA")
-        logo_w = int(width * 0.25)
-        logo_h = int(logo_w * raw_logo.height / raw_logo.width)
-        logo_img = raw_logo.resize((logo_w, logo_h), Image.LANCZOS)
-        logo_section_h = padding + logo_h
-
     # カード上部ロゴ（背景の上）
     vw_logo_img = None
     vw_logo_h = 0
@@ -161,16 +164,20 @@ def render_card(
         + body_lh * len(body_lines) + body_lh * 2
         + cta_lh * len(cta_lines) + padding // 2
         + qr_size + int(padding * 1.5)
-        + logo_section_h
         + padding // 2 + ts_lh + 6
         + rect_inset
     )
+
+    copyright_font = load_bold_font(int(font_size * 0.9))
+    copyright_pad = padding // 2
+    copyright_lh = line_h(copyright_font)
 
     tile = Image.open(BORDER_PATH).convert("RGB")
     tile_h = int(width * tile.height / tile.width)
     tile = tile.resize((width, tile_h), Image.LANCZOS)
 
-    canvas_height = max(tile_h, card_top + card_content_h)
+    card_canvas_h = max(tile_h, card_top + card_content_h)
+    canvas_height = card_canvas_h + copyright_pad + copyright_lh + copyright_pad
     canvas = Image.new("RGB", (width, canvas_height), "white")
     for y_tile in range(0, canvas_height, tile_h):
         canvas.paste(tile, (0, y_tile))
@@ -182,7 +189,7 @@ def render_card(
 
     draw = ImageDraw.Draw(canvas)
     draw.rounded_rectangle(
-        (rect_inset, card_top, width - rect_inset, canvas_height - rect_inset),
+        (rect_inset, card_top, width - rect_inset, card_canvas_h - rect_inset),
         radius=20,
         fill="white",
     )
@@ -208,12 +215,12 @@ def render_card(
     canvas.paste(qr_img, ((width - qr_size) // 2, y))
     y += qr_size + int(padding * 1.5)
 
-    if logo_img:
-        canvas.paste(logo_img, ((width - logo_img.width) // 2, y), logo_img)
-        y += logo_h
-
     y += padding // 2
     draw.text((width - rect_inset - padding // 2, y), created_at_str, font=ts_font, fill="#111111", anchor="rt")
+
+    # カード外・背景上のコピーライト
+    copyright_y = card_canvas_h - rect_inset + copyright_pad
+    draw.text((width // 2, copyright_y), COPYRIGHT, font=copyright_font, fill="white", anchor="mt")
 
     return canvas
 

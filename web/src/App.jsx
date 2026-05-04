@@ -45,7 +45,7 @@ export default function App() {
   return (
     <div
       className="min-h-screen p-2 sm:p-12"
-      style={{ backgroundImage: `url(${base}assets/border.png)`, backgroundRepeat: 'repeat' }}
+      style={{ backgroundImage: `url(${base}assets/border.png)`, backgroundRepeat: 'repeat', backgroundSize: '100% auto' }}
     >
       <div className="flex justify-center py-6">
         <img src={`${base}assets/vw_logo.png`} alt="Vibe Writing" className="w-2/3 max-w-xs" />
@@ -77,12 +77,10 @@ export default function App() {
               </dl>
             )}
 
-            <div className="flex justify-center py-8">
-              <img src={`${base}assets/logo.jpg`} alt="logo" className="w-1/4" />
-            </div>
           </>
         ) : null}
       </div>
+      <p className="text-center text-white text-xs py-6">© 2026 読んでみてはラジオ</p>
     </div>
   )
 }
