@@ -24,6 +24,8 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  const SITE_NAME = 'Vibe Writing Presented by 読んでみてはラジオ'
+
   useEffect(() => {
     setStory(null)
     setError(null)
@@ -41,6 +43,17 @@ export default function App() {
       .then(setStory)
       .catch(() => setError('小説が見つかりませんでした'))
   }, [uuid])
+
+  useEffect(() => {
+    const descEl = document.querySelector('meta[name="description"]')
+    if (story) {
+      document.title = `${story.title} | ${SITE_NAME}`
+      if (descEl) descEl.setAttribute('content', story.story.slice(0, 200))
+    } else {
+      document.title = SITE_NAME
+      if (descEl) descEl.setAttribute('content', 'AIが生成したショートショートをお届けします。')
+    }
+  }, [story])
 
   return (
     <div
