@@ -105,7 +105,7 @@ export default function App() {
           </>
         ) : null}
       </div>
-      <p className="text-center text-white text-xs py-6">© 2026 読んでみてはラジオ</p>
+      <p className="text-center text-white text-xs py-6">© 2026 <a href="https://yondemiteha.com" target="_blank" rel="noopener noreferrer" className="no-underline">読んでみてはラジオ</a></p>
     </div>
   )
 }
