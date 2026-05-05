@@ -90,6 +90,18 @@ export default function App() {
               </dl>
             )}
 
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`「${story.title}」を読みました！\n#読んでみてはラジオ #PCWE\n${window.location.href}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-10 flex items-center justify-center gap-2 w-full rounded-full bg-black text-white text-sm font-medium py-2.5 hover:bg-gray-800 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="w-4 h-4 fill-current">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.629L18.244 2.25zM17.083 19.77h1.833L7.084 4.126H5.117L17.083 19.77z" />
+              </svg>
+              シェアする
+            </a>
+
           </>
         ) : null}
       </div>
