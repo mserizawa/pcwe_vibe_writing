@@ -131,7 +131,7 @@ def render_card(
     title_font = load_font(font_path, int(font_size * 1.35))
     body_font = load_font(font_path, font_size)
     cta_font = load_font(font_path, int(font_size * 0.85))
-    ts_font = load_font(font_path, int(font_size * 0.7))
+    ts_font = load_font(font_path, int(font_size * 0.85) if no_background else int(font_size * 0.7))
 
     def line_h(font: ImageFont.FreeTypeFont | ImageFont.ImageFont) -> int:
         dummy = Image.new("RGB", (1, 1))
@@ -186,6 +186,7 @@ def render_card(
         card_canvas_h = max(tile_h, card_top + card_content_h)
 
     canvas_height = card_canvas_h + copyright_pad + copyright_lh + copyright_pad
+    copyright_y = card_canvas_h - rect_inset + copyright_pad
     canvas = Image.new("RGB", (width, canvas_height), "white")
 
     if not no_background:
@@ -223,14 +224,19 @@ def render_card(
         y += cta_lh
     y += padding // 2
 
-    canvas.paste(qr_img, ((width - qr_size) // 2, y))
+    qr_top_y = y
+    canvas.paste(qr_img, ((width - qr_size) // 2, qr_top_y))
     y += qr_size + int(padding * 1.5)
 
-    y += padding // 2
-    draw.text((width - rect_inset - padding // 2, y), created_at_str, font=ts_font, fill="#111111", anchor="rt")
+    if no_background:
+        ts_display = f"生成日時：{created_at_str}"
+        ts_y = (qr_top_y + qr_size + copyright_y) // 2
+        draw.text((width // 2, ts_y), ts_display, font=ts_font, fill="#111111", anchor="mm")
+    else:
+        y += padding // 2
+        draw.text((width - rect_inset - padding // 2, y), created_at_str, font=ts_font, fill="#111111", anchor="rt")
 
     # カード外・背景上のコピーライト
-    copyright_y = card_canvas_h - rect_inset + copyright_pad
     copyright_color = "#111111" if no_background else "white"
     copyright_draw_font = ts_font if no_background else copyright_font
     draw.text((width // 2, copyright_y), COPYRIGHT, font=copyright_draw_font, fill=copyright_color, anchor="mt")
