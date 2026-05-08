@@ -91,7 +91,7 @@ export default function App() {
             )}
 
             <a
-              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`「${story.title}」を読みました！\n#読んでみてはラジオ #PCWE\n${window.location.href}`)}`}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`「${story.title}」を読みました！\n#読んでみてはラジオ #PCWE2026 #PCEX2026\n${window.location.href}`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-10 flex items-center justify-center gap-2 w-full rounded-full bg-black text-white text-sm font-medium py-2.5 hover:bg-gray-800 transition-colors"
